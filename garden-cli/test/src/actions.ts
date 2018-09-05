@@ -34,6 +34,7 @@ import {
   loginParamsSchema,
   logoutParamsSchema,
   getLoginStatusParamsSchema,
+  hotReloadParamsSchema,
 } from "../../src/types/plugin/params"
 
 const now = new Date()
@@ -200,6 +201,19 @@ describe("ActionHelper", () => {
         expect(result).to.eql({
           pushed: true,
         })
+      })
+    })
+
+    describe("hotReload", () => {
+      it.only("should correctly call the corresponding plugin handler", async () => {
+        const result = await actions.hotReload({
+          module,
+          runtimeContext: {
+            envVars: { FOO: "bar" },
+            dependencies: {},
+          },
+        })
+        expect(result).to.eql({})
       })
     })
 
@@ -436,6 +450,11 @@ const testPlugin: PluginFactory = async () => ({
       pushModule: async (params) => {
         validate(params, pushModuleParamsSchema)
         return { pushed: true }
+      },
+
+      hotReload: async (params) => {
+        validate(params, hotReloadParamsSchema)
+        return {}
       },
 
       runModule: async (params) => {

@@ -22,12 +22,14 @@ import {
   BuildResult,
   BuildStatus,
   ValidateModuleResult,
+  HotReloadResult,
   TestResult,
 } from "../types/plugin/outputs"
 import {
   BuildModuleParams,
   GetBuildStatusParams,
   ValidateModuleParams,
+  HotReloadParams,
   TestModuleParams,
 } from "../types/plugin/params"
 import { BaseServiceSpec } from "../config/service"
@@ -126,6 +128,10 @@ export async function buildGenericModule({ module }: BuildModuleParams<GenericMo
   return output
 }
 
+export async function reloadGenericModule(_: HotReloadParams<GenericModule>): Promise<HotReloadResult> {
+  return {}
+}
+
 export async function testGenericModule({ module, testConfig }: TestModuleParams<GenericModule>): Promise<TestResult> {
   const startedAt = new Date()
   const command = testConfig.spec.command
@@ -163,6 +169,7 @@ export const genericPlugin: GardenPlugin = {
       validate: parseGenericModule,
       getBuildStatus: getGenericModuleBuildStatus,
       build: buildGenericModule,
+      hotReload: reloadGenericModule,
       testModule: testGenericModule,
     },
   },

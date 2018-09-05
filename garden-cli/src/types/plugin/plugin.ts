@@ -40,6 +40,7 @@ import {
   getBuildStatusParamsSchema,
   buildModuleParamsSchema,
   pushModuleParamsSchema,
+  hotReloadParamsSchema,
   runModuleParamsSchema,
   testModuleParamsSchema,
   getTestResultParamsSchema,
@@ -60,6 +61,7 @@ import {
   moduleTypeDescriptionSchema,
   PluginActionOutputs,
   pushModuleResultSchema,
+  hotReloadResultSchema,
   runResultSchema,
   ServiceActionOutputs,
   setSecretResultSchema,
@@ -313,7 +315,13 @@ export const moduleActionDescriptions: { [P in ModuleActionName | ServiceActionN
     paramsSchema: pushModuleParamsSchema,
     resultSchema: pushModuleResultSchema,
   },
-
+  hotReload: {
+    description: dedent`
+      Reload a module's running services without redeploying them when the module's sources change.
+    `,
+    paramsSchema: hotReloadParamsSchema,
+    resultSchema: hotReloadResultSchema,
+  },
   runModule: {
     description: dedent`
       Run an ad-hoc instance of the specified module. This should wait until the execution completes,
