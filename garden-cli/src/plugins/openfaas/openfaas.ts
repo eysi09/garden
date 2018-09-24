@@ -7,7 +7,7 @@
  */
 
 import * as Joi from "joi"
-import { join, resolve } from "path"
+import { join } from "path"
 import { resolve as urlResolve } from "url"
 import { STATIC_DIR } from "../../constants"
 import { PluginError, ConfigurationError } from "../../exceptions"
@@ -28,7 +28,6 @@ import {
   Service,
 } from "../../types/service"
 import {
-  buildGenericModule,
   GenericModuleSpec,
   genericModuleSpecSchema,
   GenericTestSpec,
@@ -45,20 +44,18 @@ import {
 } from "../../types/plugin/params"
 import { every, values } from "lodash"
 import { dumpYaml, findByName } from "../../util/util"
-import * as execa from "execa"
 import { KubeApi } from "../kubernetes/api"
 import { waitForObjects, checkDeploymentStatus } from "../kubernetes/status"
 import { systemSymbol } from "../kubernetes/system"
 import { BaseServiceSpec } from "../../config/service"
 import { GardenPlugin } from "../../types/plugin/plugin"
 import { Provider, providerConfigBaseSchema } from "../../config/project"
+import { faasCli } from "./faas-cli"
+import { CleanupEnvironmentParams } from "../../types/plugin/params"
 import dedent = require("dedent")
-import { faasCliCmd, faasCliDockerArgs } from "./faas-cli"
 
 const systemProjectPath = join(STATIC_DIR, "openfaas", "system")
 export const stackFilename = "stack.yml"
-export const builderWorkDir = "/wd"
-export const FAAS_CLI_IMAGE_ID = "openfaas/faas-cli:0.7.3"
 
 export interface OpenFaasModuleSpec extends GenericModuleSpec {
   handler: string
@@ -130,7 +127,7 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
         await ofGarden.actions.prepareEnvironment({ force })
 
-        const results = await ofGarden.actions.deployServices({})
+        const results = await ofGarden.actions.deployServices({ force })
         const failed = values(results.taskResults).filter(r => !!r.error).length
 
         if (failed) {
@@ -140,6 +137,11 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         }
 
         return {}
+      },
+
+      async cleanupEnvironment({ ctx }: CleanupEnvironmentParams) {
+        const ofGarden = await getOpenFaasGarden(ctx)
+        return ofGarden.actions.cleanupEnvironment({})
       },
     },
     moduleActions: {
@@ -151,17 +153,13 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
             { context: `module ${moduleConfig.name}` },
           )
 
-          // FIXME: this feels too magicky and convoluted, we should make this type of flow feel more natural
-          moduleConfig.build.command = faasCliCmd({
-            buildPath: `\${modules.${moduleConfig.name}.buildPath}`,
-            imageId: `openfaas--builder:\${modules.openfaas--builder.version}`,
-            faasCmd: "build",
-          })
-
           moduleConfig.build.dependencies.push({
             name: "builder",
             plugin: "openfaas",
-            copy: [],
+            copy: [{
+              source: "templates/template",
+              target: ".",
+            }],
           })
 
           moduleConfig.serviceConfigs = [{
@@ -187,13 +185,16 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
         getBuildStatus: getGenericModuleBuildStatus,
 
-        async build(params: BuildModuleParams<OpenFaasModule>) {
-          const { ctx, module } = params
-
+        async build({ ctx, module }: BuildModuleParams<OpenFaasModule>) {
           // prepare the stack.yml file, before handing off the build to the generic handler
           await writeStackFile(ctx, module, {})
 
-          return buildGenericModule(params)
+          const buildLog = await faasCli.stdout({
+            cwd: module.buildPath,
+            args: ["build", "-f", stackFilename],
+          })
+
+          return { fresh: true, buildLog }
         },
 
         // TODO: design and implement a proper test flow for openfaas functions
@@ -208,18 +209,16 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
         },
 
         async deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
-          const { ctx, module, service, logEntry, runtimeContext, buildDependencies } = params
+          const { ctx, module, service, logEntry, runtimeContext } = params
 
           // write the stack file again with environment variables
           await writeStackFile(ctx, module, runtimeContext.envVars)
 
           // use faas-cli to do the deployment
-          await execa("docker", faasCliDockerArgs({
-            buildPath: module.buildPath,
-            imageId: FAAS_CLI_IMAGE_ID,
-            faasCmd: "deploy",
-            dockerOpts: ["--net", "host"],
-          }))
+          await faasCli.stdout({
+            cwd: module.buildPath,
+            args: ["deploy", "-f", stackFilename],
+          })
 
           // wait until deployment is ready
           const k8sProvider = getK8sProvider(ctx)
@@ -240,7 +239,6 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
           let found = true
 
           try {
-
             status = await getServiceStatus({
               ctx,
               service,
@@ -251,12 +249,10 @@ export function gardenPlugin({ config }: { config: OpenFaasConfig }): GardenPlug
 
             found = !!status.state
 
-            await execa("docker", faasCliDockerArgs({
-              buildPath: service.module.buildPath,
-              imageId: FAAS_CLI_IMAGE_ID,
-              faasCmd: "remove",
-              dockerOpts: ["--net", "host"],
-            }))
+            await faasCli.stdout({
+              cwd: service.module.buildPath,
+              args: ["remove", "-f", stackFilename],
+            })
 
           } catch (err) {
             found = false
@@ -288,7 +284,7 @@ async function writeStackFile(
     functions: {
       [module.name]: {
         lang: module.spec.lang,
-        handler: resolve(builderWorkDir, module.spec.handler),
+        handler: module.spec.handler,
         image,
         environment: envVars,
       },

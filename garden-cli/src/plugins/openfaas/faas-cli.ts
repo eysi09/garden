@@ -6,39 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { builderWorkDir, stackFilename } from "./openfaas"
+import { BinaryCmd } from "../../util/ext-tools"
 
-export interface FaasCliCmdParams {
-  buildPath: string,
-  imageId: string,
-  faasCmd: string,
-  faasOpts?: string[],
-  dockerOpts?: string[],
-}
-
-export function faasCliCmd(
-  cmdParams: FaasCliCmdParams,
-): string[] {
-
-  return [
-    "docker",
-    ...(faasCliDockerArgs(cmdParams)),
-  ]
-
-}
-
-export function faasCliDockerArgs(
-  { buildPath, imageId, faasCmd, faasOpts = [], dockerOpts = [] }: FaasCliCmdParams): string[] {
-
-  return [
-    "run", "-i",
-    "-v", `${buildPath}:${builderWorkDir}`,
-    "-v", "/var/run/docker.sock:/var/run/docker.sock",
-    "--workdir", builderWorkDir,
-    ...dockerOpts,
-    imageId,
-    "faas-cli", faasCmd, "-f", stackFilename,
-    ...faasOpts,
-  ]
-
-}
+export const faasCli = new BinaryCmd({
+  name: "faas-cli",
+  specs: {
+    darwin: {
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.7.3/faas-cli-darwin",
+    },
+    linux: {
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.7.3/faas-cli",
+    },
+    win32: {
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.7.3/faas-cli.exe",
+    },
+  },
+})
