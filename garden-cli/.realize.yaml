@@ -1,0 +1,40 @@
+settings:
+  files:
+    outputs:
+      status: false
+      path: ""
+      name: .r.outputs.log
+    logs:
+      status: false
+      path: ""
+      name: .r.logs.log
+    errors:
+      status: false
+      path: ""
+      name: .r.errors.log
+  legacy:
+    force: false
+    interval: 0s
+schema:
+- name: garden-cli
+  path: .
+  commands:
+    clean:
+      status: true
+    install:
+      status: true
+    build:
+      status: true
+      args:
+        - -o
+        - build/garden
+  watcher:
+    extensions:
+    - go
+    paths:
+    - /
+    ignore:
+      paths:
+      - .git
+      - .realize
+      - vendor
