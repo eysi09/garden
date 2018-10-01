@@ -647,12 +647,11 @@ export class Garden {
       }
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
-
       const modulePaths = flatten(await Bluebird.map(dirsToScan, async dir => {
         const ignorer = await getIgnorer(dir)
         const scanOpts = {
           filter: (path) => {
-            const relPath = relative(this.projectRoot, path)
+            const relPath = relative(dir, path)
             return !ignorer.ignores(relPath)
           },
         }
