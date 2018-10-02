@@ -29,7 +29,9 @@ steps:
     npm run check-docs
   displayName: Make sure generated docs are up-to-date
 
-# build, lint and run tests
 - script: npm run build
+  displayName: Build
 - script: npm run lint
+  displayName: Lint
 - script: npm test
+  displayName: Test
