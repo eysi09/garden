@@ -10,9 +10,26 @@ steps:
 - task: NodeTool@0
   inputs:
     versionSpec: '8.x'
-  displayName: 'Install Node.js'
+  displayName: Install Node.js
+
+- script: sudo apt install rsync cmake libicu-dev pkg-config
+  displayName: Install apt dependencies
 
 - script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+    curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+  displayName: Install kubectl
+
+- script: |
+    npm ci
+    node_modules/.bin/lerna bootstrap --ci
+  displayName: Bootstrap npm
+
+- script: |
+    npm run generate-docs
+    npm run check-docs
+  displayName: Make sure generated docs are up-to-date
+
+# build, lint and run tests
+- script: npm run build
+- script: npm run lint
+- script: npm test
