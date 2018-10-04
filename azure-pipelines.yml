@@ -51,16 +51,16 @@ steps:
     node_modules/.bin/lerna bootstrap --ci
   displayName: Bootstrap npm
 
-- script: |
-    npm run generate-docs
-    npm run check-docs
-  displayName: Make sure generated docs are up-to-date
+# - script: |
+#     npm run generate-docs
+#     npm run check-docs
+#   displayName: Make sure generated docs are up-to-date
 
 - script: npm run build
   displayName: Build
-- script: npm run lint
-  displayName: Lint
-- script: npm test
-  displayName: Test
+# - script: npm run lint
+#   displayName: Lint
+# - script: npm test
+#   displayName: Test
 - script: npm run integ
   displayName: Integ tests
