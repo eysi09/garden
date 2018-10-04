@@ -3,29 +3,30 @@
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
-pool:
-  vmImage: 'Ubuntu 16.04'
+# pool:
+#   vmImage: 'Ubuntu 16.04'
 
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '8.x'
-  displayName: Install Node.js
-
-- script: sudo apt install rsync cmake libicu-dev pkg-config
-  displayName: Install apt dependencies
+# - task: NodeTool@0
+#   inputs:
+#     versionSpec: '8.x'
+#   displayName: Install Node.js
+#
+# - script: sudo apt install rsync cmake libicu-dev pkg-config
+#   displayName: Install apt dependencies
 
 # - script: |
 #     curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 #   displayName: Install kubectl
 
-- script: /bin/install-minikube-ubuntu
-  displayName: Install minikube on Ubuntu
-  condition: eq( variables.Agent.OS, 'Linux' )
 
-- script: /bin/install-minikube-windows
+- script: bin/install-minikube-ubuntu
+  displayName: Install minikube on Ubuntu
+  condition: eq( variables['Agent.OS'], 'Linux' )
+
+- script: sh bin/install-minikube-windows
   displayName: Install minikube on Windows
-  condition: eq( variables.Agent.OS, 'Windows_NT' )
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )
 
 # - script: |
 #     curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
