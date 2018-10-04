@@ -19,48 +19,56 @@ steps:
 #     curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 #   displayName: Install kubectl
 
-- script: |
-    curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
-    curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo cp kubectl /usr/local/bin/ && rm kubectl
+- script: /bin/install-minikube-ubuntu
+  displayName: Install minikube on Ubuntu
+  condition: eq( variables.Agent.OS, 'Linux' )
 
-    export MINIKUBE_WANTUPDATENOTIFICATION=false
-    export MINIKUBE_WANTREPORTERRORPROMPT=false
-    export MINIKUBE_HOME=$HOME
-    export CHANGE_MINIKUBE_NONE_USER=true
-    mkdir -p $HOME/.kube
-    mkdir -p $HOME/.minikube
-    touch $HOME/.kube/config
+- script: /bin/install-minikube-windows
+  displayName: Install minikube on Windows
+  condition: eq( variables.Agent.OS, 'Windows_NT' )
 
-    export KUBECONFIG=$HOME/.kube/config
-    sudo -E minikube start --vm-driver=none
+# - script: |
+#     curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
+#     curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo cp kubectl /usr/local/bin/ && rm kubectl
+#
+#     export MINIKUBE_WANTUPDATENOTIFICATION=false
+#     export MINIKUBE_WANTREPORTERRORPROMPT=false
+#     export MINIKUBE_HOME=$HOME
+#     export CHANGE_MINIKUBE_NONE_USER=true
+#     mkdir -p $HOME/.kube
+#     mkdir -p $HOME/.minikube
+#     touch $HOME/.kube/config
+#
+#     export KUBECONFIG=$HOME/.kube/config
+#     sudo -E minikube start --vm-driver=none
+#
+#     # this for loop waits until kubectl can access the api server that Minikube has created
+#     for i in {1..150}; do # timeout for 5 minutes
+#       kubectl get po &> /dev/null
+#       if [ $? -ne 1 ]; then
+#           break
+#       fi
+#       sleep 2
+#     done
+#
+#     # kubectl commands are now able to interact with Minikube cluster
+#   displayName: Install Minikube and kubectl
 
-    # this for loop waits until kubectl can access the api server that Minikube has created
-    for i in {1..150}; do # timeout for 5 minutes
-      kubectl get po &> /dev/null
-      if [ $? -ne 1 ]; then
-          break
-      fi
-      sleep 2
-    done
-
-    # kubectl commands are now able to interact with Minikube cluster
-  displayName: Install Minikube and kubectl
-
-- script: |
-    npm ci
-    node_modules/.bin/lerna bootstrap --ci
-  displayName: Bootstrap npm
+# - script: |
+#     npm ci
+#     node_modules/.bin/lerna bootstrap --ci
+#   displayName: Bootstrap npm
 
 # - script: |
 #     npm run generate-docs
 #     npm run check-docs
 #   displayName: Make sure generated docs are up-to-date
 
-- script: npm run build
-  displayName: Build
+# - script: npm run build
+#   displayName: Build
 # - script: npm run lint
 #   displayName: Lint
 # - script: npm test
 #   displayName: Test
-- script: npm run integ
-  displayName: Integ tests
+# - script: npm run integ
+#   displayName: Integ tests
