@@ -25,7 +25,8 @@ Function CheckHyperV {
     if($hyperv.State -ne "Enabled") {
         Write-Host "- Hyper-V is being enabled. You will need to restart your computer for the changes to take effect (This is required for Docker for Windows to run)."
         # For testing, disable with: Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
-        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+        # Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+        DISM /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V
     } else {
         Write-Host "- Hyper-V is enabled."
     }
