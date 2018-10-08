@@ -1,0 +1,173 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+# pool:
+#   vmImage: 'Ubuntu 16.04'
+
+jobs:
+- job: Linux
+  pool:
+    vmImage: 'ubuntu-16.04'
+
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '8.x'
+    displayName: Install Node.js
+
+  - script: sudo apt install rsync cmake libicu-dev pkg-config
+    displayName: Install apt dependencies
+
+  # - script: |
+  #     curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+  #   displayName: Install kubectl
+
+
+  - script: echo hello from Linux
+
+  - script: |
+      curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
+      curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo cp kubectl /usr/local/bin/ && rm kubectl
+
+      export MINIKUBE_WANTUPDATENOTIFICATION=false
+      export MINIKUBE_WANTREPORTERRORPROMPT=false
+      export MINIKUBE_HOME=$HOME
+      export CHANGE_MINIKUBE_NONE_USER=true
+      mkdir -p $HOME/.kube
+      mkdir -p $HOME/.minikube
+      touch $HOME/.kube/config
+
+      export KUBECONFIG=$HOME/.kube/config
+      sudo -E minikube start --vm-driver=none
+
+      # this for loop waits until kubectl can access the api server that Minikube has created
+      for i in {1..150}; do # timeout for 5 minutes
+        kubectl get po &> /dev/null
+        if [ $? -ne 1 ]; then
+            break
+        fi
+        sleep 2
+      done
+
+      # kubectl commands are now able to interact with Minikube cluster
+    displayName: Install Minikube and kubectl
+
+  # - script: bin/install-minikube-ubuntu
+  #   displayName: Install minikube on Ubuntu
+
+  - script: curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
+    displayName: Install helm
+
+  - script: helm init
+    displayName: Init helm
+
+  - script: npm ci
+    displayName: Bootstrap npm
+
+  - script: node_modules/.bin/lerna bootstrap --ci
+
+  # - script: |
+  #     npm run generate-docs
+  #     npm run check-docs
+  #   displayName: Make sure generated docs are up-to-date
+
+  - script: npm run build
+    displayName: Build
+  # - script: npm run lint
+  #   displayName: Lint
+  # - script: npm test
+  #   displayName: Test
+  - script: npm run integ
+    displayName: Integ tests
+
+#- job: Mac
+#  pool:
+#    vmImage: 'macOS-10.13'
+#
+#  steps:
+#  - task: NodeTool@0
+#    inputs:
+#      versionSpec: '8.x'
+#    displayName: Install Node.js
+#
+#  - script: |
+#      brew update && brew install cmake kubectl kubernetes-helm stern rsync icu4c pkg-config faas-cli
+#    displayName: Install dependencies
+#
+#  - script: brew cask install docker minikube virtualbox
+#    displayName: Install minikube
+#
+#  - script: echo hello from Mac
+#
+#  - script: minikube start
+#    displayName: Start minikube
+#
+#  - script: eval $(minikube docker-env)
+#    displayName: Use minikube's built-in docker daemon
+#
+#  - script: helm init
+#    displayName: Init helm
+#
+#  - script: |
+#      npm ci
+#      node_modules/.bin/lerna bootstrap --ci
+#    displayName: Bootstrap npm
+#
+#  # - script: |
+#  #     npm run generate-docs
+#  #     npm run check-docs
+#  #   displayName: Make sure generated docs are up-to-date
+#
+#  - script: npm run build
+#    displayName: Build
+#  # - script: npm run lint
+#  #   displayName: Lint
+#  # - script: npm test
+#  #   displayName: Test
+#  - script: npm run integ
+#    displayName: Integ tests
+
+# - job: Windows
+#   pool:
+#     vmImage: 'vs2017-win2016'
+#   steps:
+#   - script: echo hello from Windows
+
+  # - script: sh bin/install-minikube-windows
+  #   displayName: Install minikube on Windows
+  #   condition: eq( variables['Agent.OS'], 'Windows_NT' )
+
+  # - powershell: Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/charlieding/Virtualization-Documentation/live/hyperv-tools/Nested/NVMBootstrap_WinServer16.ps1'))
+  #   displayName: Set up nested vm
+
+  # - script: choco install minikube
+  #   displayName: Install minikube
+
+  # - script: choco install kubernetes-cli
+  #   displayName: Install kubectl
+
+  # - script: choco install docker-machine
+  #   displayName: Install docker-machine
+
+  # - script: choco install virtualbox --params /NoExtensionPack
+  #   displayName: Install VirtualBox
+
+  # - script: docker-machine create -d virtualbox --virtualbox-no-vtx-check test
+  #   displayName: Set --virtualbox-no-vtx-check
+
+  # - powershell: Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/eysi09/garden/azure-pipelines-fixed/garden-service/support/install.ps1'))
+  #   displayName: Run install script
+
+  # - powershell: DISM /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V
+  #   displayName: Enable Hyper-V
+
+  # - powershell: docker-machine create -d hyperv --hyperv-virtual-switch "Primary Virtual Switch" manager1
+  #   displayName: Create virtual switch
+
+  # - script: minikube start --vm-driver hyperv --hyperv-virtual-switch "Primary Virtual Switch"
+  #   displayName: Start minikube
+
+  # - script: minikube start --vm-driver="virtualbox" --logtostderr
+  #   displayName: Start minikube
