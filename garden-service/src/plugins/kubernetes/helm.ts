@@ -35,7 +35,7 @@ import {
   ValidateModuleResult,
 } from "../../types/plugin/outputs"
 import { Service, ServiceStatus } from "../../types/service"
-import { dumpYaml } from "../../util/util"
+import { dumpYaml, sleep } from "../../util/util"
 import { KubernetesProvider } from "./kubernetes"
 import { getAppNamespace } from "./namespace"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../constants"
@@ -183,6 +183,10 @@ export const helmHandlers: Partial<ModuleAndServiceActions<HelmModule>> = {
 async function build({ ctx, module, logEntry }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const buildPath = module.buildPath
   const config = module
+
+  await helm(ctx.provider, logEntry, "init")
+
+  await sleep(10000)
 
   // fetch the chart
   const fetchArgs = [
