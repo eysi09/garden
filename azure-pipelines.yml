@@ -12,13 +12,13 @@ jobs:
     vmImage: 'ubuntu-16.04'
 
   steps:
-  # - task: NodeTool@0
-  #   inputs:
-  #     versionSpec: '8.x'
-  #   displayName: Install Node.js
-  #
-  # - script: sudo apt install rsync cmake libicu-dev pkg-config
-  #   displayName: Install apt dependencies
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '8.x'
+    displayName: Install Node.js
+
+  - script: sudo apt install rsync cmake libicu-dev pkg-config
+    displayName: Install apt dependencies
 
   # - script: |
   #     curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
@@ -27,8 +27,8 @@ jobs:
 
   - script: echo hello from Linux
 
-  # - script: bin/install-minikube-ubuntu
-  #   displayName: Install minikube on Ubuntu
+  - script: bin/install-minikube-ubuntu
+    displayName: Install minikube on Ubuntu
 
 
   # - script: |
@@ -59,36 +59,39 @@ jobs:
   #   displayName: Install Minikube and kubectl
 
   # - script: |
-  #     npm ci
+  #     npm ci --no-bin-links
   #     node_modules/.bin/lerna bootstrap --ci
   #   displayName: Bootstrap npm
+
+  - script: npm i --no-bin-links && cd garden-service && npm i --no-bin-links && cd ..
+    displayName: Bootstrap npm
 
   # - script: |
   #     npm run generate-docs
   #     npm run check-docs
   #   displayName: Make sure generated docs are up-to-date
 
-  # - script: npm run build
-  #   displayName: Build
+  - script: npm run build
+    displayName: Build
   # - script: npm run lint
   #   displayName: Lint
   # - script: npm test
   #   displayName: Test
-  # - script: npm run integ
-  #   displayName: Integ tests
+  - script: npm run integ
+    displayName: Integ tests
 
-- job: Windows
-  pool:
-    vmImage: 'vs2017-win2016'
-  steps:
-  - script: echo hello from Windows
+# - job: Windows
+#   pool:
+#     vmImage: 'vs2017-win2016'
+#   steps:
+#   - script: echo hello from Windows
 
   # - script: sh bin/install-minikube-windows
   #   displayName: Install minikube on Windows
   #   condition: eq( variables['Agent.OS'], 'Windows_NT' )
 
-  - powershell: Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/charlieding/Virtualization-Documentation/live/hyperv-tools/Nested/NVMBootstrap_WinServer16.ps1'))
-    displayName: Set up nested vm
+  # - powershell: Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/charlieding/Virtualization-Documentation/live/hyperv-tools/Nested/NVMBootstrap_WinServer16.ps1'))
+  #   displayName: Set up nested vm
 
   # - script: choco install minikube
   #   displayName: Install minikube
