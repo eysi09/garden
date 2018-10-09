@@ -30,6 +30,11 @@ jobs:
   - script: bin/install-minikube-ubuntu
     displayName: Install minikube on Ubuntu
 
+  # - script: curl http://127.0.0.1:8001/ui
+  #   displayName: Curl minikube UI
+
+  - script: kubectl get pods --all-namespaces
+    displayName: Get pods
 
   # - script: |
   #     curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
@@ -58,11 +63,11 @@ jobs:
   #     # kubectl commands are now able to interact with Minikube cluster
   #   displayName: Install Minikube and kubectl
 
-  - script: npm ci
-    displayName: Bootstrap npm
+  # - script: npm ci
+  #   displayName: Bootstrap npm
 
-  - script: node_modules/.bin/lerna bootstrap --ci
-    displayName: Bootstrap npm
+  # - script: node_modules/.bin/lerna bootstrap --ci
+  #   displayName: Bootstrap npm
 
   # - script: npm i --no-bin-links && cd garden-service && npm i --no-bin-links && cd ..
   #   displayName: Bootstrap npm
@@ -72,14 +77,14 @@ jobs:
   #     npm run check-docs
   #   displayName: Make sure generated docs are up-to-date
 
-  - script: npm run build
-    displayName: Build
+  # - script: npm run build
+  #   displayName: Build
   # - script: npm run lint
   #   displayName: Lint
   # - script: npm test
   #   displayName: Test
-  - script: npm run integ
-    displayName: Integ tests
+  # - script: npm run integ
+  #   displayName: Integ tests
 
 # - job: Windows
 #   pool:
