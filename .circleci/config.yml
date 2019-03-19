@@ -10,6 +10,11 @@ version: 2.1
     docker:
       - image: circleci/node:10
 
+  # Configuration for garden agent
+  garden-agent: &garden-agent
+    docker:
+      - image: gardenenginge/cc-agent:latest
+
   # Attach's the current saved workspace
   attach-workspace: &attach-workspace
     attach_workspace:
@@ -175,6 +180,18 @@ jobs:
             # Save the built output for future
             - garden-service/build/
             - garden-service/static/
+
+  test-garden-agent:
+    <<: *garden-agent
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Test Garden version command
+          command: |
+            garden version
+
   test-service:
     <<: *node-config
     steps:
@@ -190,11 +207,8 @@ jobs:
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
       - run:
-          name: Make sure generated docs are up-to-date
-          command: npm run check-docs
-      - run:
-          name: lint
-          command: npm run lint
+          name: Check docs, licenses, lint etc
+          command: npm run check-all
       - run:
           name: test
           command: |
@@ -254,10 +268,11 @@ workflows:
   version: 2
   commit:
     jobs:
-      - build-service
-      - test-service
-      - build-dashboard
-      - test-dashboard
+      - test-garden-agent
+      # - build-service
+      # - test-service
+      # - build-dashboard
+      # - test-dashboard
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it
