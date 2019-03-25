@@ -184,13 +184,25 @@ jobs:
   test-garden-agent:
     <<: *garden-agent
     steps:
-      - checkout
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: Test Garden version command
+          name: Clone simple-project-remote
+          command: git clone https://$GIT_USER:$GIT_AUTH_TOKEN@github.com/garden-io/simple-project-remote.git
+      - run:
+          name: Configure kubectl context
           command: |
-            garden version
+            gcloud --quiet components update
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID && gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet auth configure-docker
+      - run:
+          name: Check Docker version
+          command: docker version
+      - run:
+          name: Deploy project
+          command: GARDEN_LOGGER_TYPE=basic garden deploy --env=remote --root=simple-project-remote
 
   test-service:
     <<: *node-config
