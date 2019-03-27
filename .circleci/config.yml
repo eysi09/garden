@@ -1,4 +1,5 @@
 # Javascript Node CircleCI 2.1 configuration file
+# PR bump
 version: 2.1
 
 # Shared config to use between jobs
@@ -96,6 +97,21 @@ commands:
             mkdir ./garden-service/static/dashboard
             cp -r ./dashboard/build/* ./garden-service/static/dashboard/
 
+  install_garden:
+    description: Installs the Garden CLI and it's dependencies
+    steps:
+      - run:
+        name: Install Garden dependencies
+        command: sudo apt-get update && sudo apt-get install rsync
+      - run:
+        name: Install the Garden CLI
+        command: |
+          mkdir -p /usr/local/garden && \
+          curl -L https://github.com/garden-io/garden/releases/download/v0.9.6/garden-v0.9.6-alpine-amd64.tar.gz | tar xvz -C /usr/local/garden --strip-components=1  && \
+      - run:
+        name: Add the Garden CLI to path
+        command: echo 'export PATH=/usr/local/garden:$PATH' >> $BASH_ENV
+
   docker_release:
     description: |
       Builds and publishes a docker image to the public registry.
@@ -182,10 +198,11 @@ jobs:
             - garden-service/static/
 
   test-garden-agent:
-    <<: *garden-agent
+    <<: *node-config
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+      - install_garden
       - run:
           name: Clone simple-project-remote
           command: git clone https://$GIT_USER:$GIT_AUTH_TOKEN@github.com/garden-io/simple-project-remote.git
