@@ -1,4 +1,5 @@
 # Javascript Node CircleCI 2.1 configuration file
+# PR bump 1
 version: 2.1
 
 # Shared config to use between jobs
@@ -96,6 +97,36 @@ commands:
             mkdir ./garden-service/static/dashboard
             cp -r ./dashboard/build/* ./garden-service/static/dashboard/
 
+  install_garden:
+    description: Installs the Garden CLI and it's dependencies
+    steps:
+      - run:
+          name: Install Garden dependencies
+          command: |
+            sudo apt-get update && sudo apt-get install rsync
+            mkdir $HOME/kubectl
+            curl -L -o $HOME/kubectl/kubectl "https://storage.googleapis.com/kubernetes-release/release/v1.11.3/bin/linux/amd64/kubectl"
+            chmod +x $HOME/kubectl/kubectl
+            echo 'export PATH=$HOME/kubectl:$PATH' >> $BASH_ENV
+
+      - run:
+          name: Install the Garden CLI
+          command: |
+            mkdir $HOME/garden
+            curl -L https://github.com/garden-io/garden/releases/download/v0.9.6/garden-v0.9.6-linux-amd64.tar.gz | tar xvz -C $HOME/garden --strip-components=1
+            echo 'export PATH=$HOME/garden:$PATH' >> $BASH_ENV
+
+  install_gcloud:
+    description: Installs the GCloud CLI
+    steps:
+      - run:
+          name: Install GCloud
+          command: |
+            mkdir $HOME/gcloud
+            curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | tar xvz -C $HOME/gcloud
+            $HOME/gcloud/google-cloud-sdk/install.sh --quiet
+            echo 'export PATH=$HOME/gcloud/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+
   docker_release:
     description: |
       Builds and publishes a docker image to the public registry.
@@ -182,10 +213,12 @@ jobs:
             - garden-service/static/
 
   test-garden-agent:
-    <<: *garden-agent
+    <<: *node-config
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
+      - install_garden
+      - install_gcloud
       - run:
           name: Clone simple-project-remote
           command: git clone https://$GIT_USER:$GIT_AUTH_TOKEN@github.com/garden-io/simple-project-remote.git
