@@ -287,17 +287,26 @@ jobs:
       - store_artifacts:
           path: garden-service/dist/
           destination: /downloads
+  build-service-dist-latest:
+    <<: *node-config
+    steps:
+      - checkout
+      - npm_install
+      - run: sudo apt-get update && sudo apt-get -y install rsync
+      - *attach-workspace
+      - include_dashboard
+      - run: npm run dist -- -- latest
       - persist_to_workspace:
           root: ./
           paths:
             - garden-service/dist/
-  release-latest-dist:
+  release-service-dist-latest:
     docker:
       - image: cibuilds/github:0.10
     steps:
       - *attach-workspace
       - run:
-          name: "Publish Release on GitHub"
+          name: "Publish release on GitHub with the tag 'latest'"
           command: |
             VERSION=latest
             ghr -t ${GIT_AUTH_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./garden-service/dist
@@ -326,12 +335,12 @@ workflows:
       # - test-dashboard:
       #     requires:
       #       - build-service
-      - build-service-dist:
+      - build-service-dist-latest:
           requires:
             - build-service
-      - release-latest-dist:
+      - release-service-dist-latest:
           requires:
-            - build-service-dist
+            - build-service-dist-latest
 
   master:
     jobs:
