@@ -287,29 +287,52 @@ jobs:
       - store_artifacts:
           path: garden-service/dist/
           destination: /downloads
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - garden-service/dist/
+  release-latest-dist:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - *attach-workspace
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            VERSION=latest
+            ghr -t ${GIT_AUTH_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./garden-service/dist
+
+
 
 workflows:
   version: 2
   commit:
     jobs:
       - build-service
-      - test-service:
+      # - test-service:
+      #     requires:
+      #       - build-service
+      # - lint:
+      #     requires:
+      #       - build-service
+      # - integ-test-service:
+      #     # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
+      #     filters:
+      #       branches:
+      #         # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+      #         ignore: /pull\/[0-9]+/
+      #     requires:
+      #       - build-service
+      # - test-dashboard:
+      #     requires:
+      #       - build-service
+      - build-service-dist:
           requires:
             - build-service
-      - lint:
+      - release-latest-dist:
           requires:
-            - build-service
-      - integ-test-service:
-          # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
-          filters:
-            branches:
-              # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-              ignore: /pull\/[0-9]+/
-          requires:
-            - build-service
-      - test-dashboard:
-          requires:
-            - build-service
+            - build-service-dist
+
   master:
     jobs:
       # Duplicated here so we can reference steps that depends on it
