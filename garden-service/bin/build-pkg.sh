@@ -1,8 +1,7 @@
 #!/bin/bash -e
 
-# Usage ./build-pkg.sh [version]
-# The version argument is used in the executable filename. Defaults to the version in package.json if none provided.
-# Note that this has no effect on the version itself, it's only used for creating the filename.
+# Usage ./build-pkg.sh <version>
+# The version argument is used in the executable filename.
 
 garden_service_root=$(cd `dirname $0` && cd .. && pwd)
 
@@ -10,11 +9,18 @@ cd ${garden_service_root}
 
 commit_hash=$(git rev-parse --short HEAD)
 
-# Allow overwriting version. Used e.g. when creating a "latest" dist
+# Read version from user input
 if [ -n "$1" ]; then
   version=$1
 else
-  version="v$(cat package.json | jq -r .version)"
+  echo "Error: Version argument missing
+
+Usage: ./build-pkg.sh <version>
+
+Examples:
+./build-pkg.sh \$(./garden --version)
+./build-pkg.sh latest"
+  exit 1
 fi
 
 echo "Packaging version ${version}-${commit_hash}"
