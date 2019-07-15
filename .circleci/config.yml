@@ -18,7 +18,7 @@ version: 2.1
   release-config: &release-config
     docker:
       # Image that contains ghr for publishing releases to Github
-      - image: cibuilds/github:0.10
+      - image: cibuilds/github:0.12.2
 
   # Attach's the current saved workspace
   attach-workspace: &attach-workspace
@@ -331,9 +331,8 @@ jobs:
               -u ${CIRCLE_PROJECT_USERNAME} \
               -r ${CIRCLE_PROJECT_REPONAME} \
               -c ${CIRCLE_SHA1} \
+              -n ${VERSION} \
               -delete \
-              -draft \
-              ${PRERELEASE} \
               ${VERSION} ./garden-service/dist
   release-service-dist-next:
     <<: *release-config
@@ -347,6 +346,7 @@ jobs:
               -u ${CIRCLE_PROJECT_USERNAME} \
               -r ${CIRCLE_PROJECT_REPONAME} \
               -c ${CIRCLE_SHA1} \
+              -n ${VERSION} \
               -delete \
               -prerelease \
               next ./garden-service/dist
@@ -356,37 +356,33 @@ workflows:
   commit:
     jobs:
       - build-service
-      # - test-service:
+      #- test-service:
+      #    requires:
+      #      - build-service
+      #- lint:
+      #    requires:
+      #      - build-service
+      #- integ-test-service:
+      #    # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
+      #    filters:
+      #      branches:
+      #        # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
+      #        ignore: /pull\/[0-9]+/
+      #    requires:
+      #      - build-service
+      #- test-dashboard:
+      #    requires:
+      #      - build-service
+      # - build-service-dist-next:
       #     requires:
       #       - build-service
-      # - lint:
+      # - release-service-dist-next:
       #     requires:
-      #       - build-service
-      # - integ-test-service:
-      #     # Don't attempt to run integ tests for external PRs (they won't have access to the required keys)
-      #     filters:
-      #       branches:
-      #         # Forked pull requests have CIRCLE_BRANCH set to pull/XXX
-      #         ignore: /pull\/[0-9]+/
-      #     requires:
-      #       - build-service
-      # - test-dashboard:
-      #     requires:
-      #       - build-service
-      - build-service-dist-next:
-          <<: *only-master
-          requires:
-            - build-service
-      - release-service-dist-next:
-          <<: *only-master
-          requires:
-            - build-service-dist-next
+      #       - build-service-dist-next
       - build-service-dist:
-          <<: *only-tags
           requires:
             - build-service
       - release-service-dist:
-          <<: *only-tags
           requires:
             - build-service-dist
 
