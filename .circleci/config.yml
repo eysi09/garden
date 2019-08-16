@@ -1,5 +1,8 @@
-# Javascript Node CircleCI 2.1 configuration file
+# CircleCI 2.1 configuration file
 version: 2.1
+
+orbs:
+  win: circleci/windows@1.0.0
 
 # Shared config to use between jobs
 # These can be used to inject shared variables
@@ -139,10 +142,7 @@ jobs:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
       - npm_install
-      - run:
-          name: build
-          command: |
-            npm run build
+      - run: npm run build
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -321,36 +321,96 @@ jobs:
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
           when: always
 
+  test-minikube:
+    machine:
+      image: 'ubuntu-1604:201903-01'
+      docker_layer_caching: true
+    environment:
+      K8S_VERSION: v1.15.0
+      MINIKUBE_VERSION: v1.3.1
+    steps:
+      - checkout
+      - run: which node
+      - run: which npm
+      - run: sudo rm -rf $(which node)
+      - run: sudo rm -rf $(which npm)
+      - run:
+          name: Install Node.js
+          # Using nvm because issue with later runs using the older system Node.js
+          command: |
+            # curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+            # export NVM_DIR="/opt/circleci/.nvm"
+            # [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+            # [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+            # nvm install 10
+            # nvm alias default 10
+            # nvm use default
+            curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+            sudo apt-get -y install nodejs
+            which node
+      - run: node --version
+      - npm_install
+      - run: npm run build
+      - run:
+          name: Install Minikube Executable
+          command: |
+            curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/${MINIKUBE_VERSION}/minikube-linux-amd64
+            chmod +x minikube
+            sudo mv minikube /usr/local/bin
+      # - run:
+      #     name: Setup kubectl
+      #     command: |
+      #       curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+      #       mkdir -p ${HOME}/.kube
+      #       touch ${HOME}/.kube/config
+      - run:
+          name: Start Minikube Cluster
+          command: sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
+      # - run:
+      #     name: Extract binary and add to $HOME dir
+      #     command: |
+      #       GARDEN_DIR=${HOME}/.garden
+      #       mkdir -p ${GARDEN_DIR}
+      #       tar xvfz ./garden-service/dist/*linux-amd64.tar.gz --strip-components=1 -C ${GARDEN_DIR}
+      - run:
+          name: Deploy demo-project
+          command: sudo ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+      # - run:
+      #     name: Deploy demo-project with binary
+      #     command: sudo $HOME/.garden/garden deploy --root examples/demo-project --logger-type basic
+
 workflows:
   version: 2
   commit:
     jobs:
-      - build
-      - build-dist:
-          requires:
-            - build
-      - build-docker:
-          requires:
-            - build-dist
-      - test-service:
-          requires:
-            - build
-      - lint:
-          requires:
-            - build
-      - e2e-test-service:
-          # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build
-      - test-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build-dist
-      - test-dashboard:
-          requires:
-            - build
+      # - build
+      # - build-dist:
+      #     requires:
+      #       - build
+      # - build-docker:
+      #     requires:
+      #       - build-dist
+      # - test-service:
+      #     requires:
+      #       - build
+      # - lint:
+      #     requires:
+      #       - build
+      # - e2e-test-service:
+      #     # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires:
+      #       - build
+      # - test-dist:
+      #     # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires:
+      #       - build-dist
+      # - test-dashboard:
+      #     requires:
+      #       - build
+      - test-minikube
+      # - test-windows
 
   master:
     jobs:

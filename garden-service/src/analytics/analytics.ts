@@ -146,7 +146,8 @@ export class AnalyticsHandler {
       this.globalConfig = {
         firstRun: false,
         userId: uuidv4(),
-        optedIn: await this.promptAnalytics(),
+        // optedIn: await this.promptAnalytics(),
+        optedIn: false,
       }
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
