@@ -331,13 +331,19 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Node.js
-          # First we remove system node and npm to ensure they're not used in later 'run' steps
+          name: Update Node.js
           command: |
-            rm -rf $(which node)
-            rm -rf $(which npm)
-            curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-            sudo apt-get -y install nodejs
+            # NVM is already installed, we just need to load it...
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            # ...export for subsequent runs...
+            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+            nvm install 10
+            nvm alias default 10
+            nvm use default
+            # ...and finally symlink for when calling Garden with sudo below
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
       - npm_install
       - run: npm run build
       - run:
@@ -357,32 +363,32 @@ workflows:
   version: 2
   commit:
     jobs:
-      - build
-      - build-dist:
-          requires:
-            - build
-      - build-docker:
-          requires:
-            - build-dist
-      - test-service:
-          requires:
-            - build
-      - lint:
-          requires:
-            - build
-      - e2e-test-service:
-          # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build
-      - test-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build-dist
-      - test-dashboard:
-          requires:
-            - build
+      # - build
+      # - build-dist:
+      #     requires:
+      #       - build
+      # - build-docker:
+      #     requires:
+      #       - build-dist
+      # - test-service:
+      #     requires:
+      #       - build
+      # - lint:
+      #     requires:
+      #       - build
+      # - e2e-test-service:
+      #     # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires:
+      #       - build
+      # - test-dist:
+      #     # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires:
+      #       - build-dist
+      # - test-dashboard:
+      #     requires:
+      #       - build
       - test-minikube
 
   master:
@@ -420,6 +426,8 @@ workflows:
           requires:
             - build-dist-edge
             - test-dist
+      - test-minikube:
+          <<: *only-master
 
   tags:
     jobs:
@@ -454,3 +462,5 @@ workflows:
           requires:
             - build-dist
             - test-dist
+      - test-minikube:
+          <<: *only-tags
